@@ -1,42 +1,75 @@
-<template>
-  <q-page class="row items-center justify-evenly">
-    <example-component
-      title="Example component"
-      active
-      :todos="todos"
-      :meta="meta"
-    ></example-component>
-  </q-page>
-</template>
-
 <script setup lang="ts">
-import { Todo, Meta } from 'components/models';
-import ExampleComponent from 'components/ExampleComponent.vue';
 import { ref } from 'vue';
+import axios from 'axios';
 
-const todos = ref<Todo[]>([
-  {
-    id: 1,
-    content: 'ct1'
-  },
-  {
-    id: 2,
-    content: 'ct2'
-  },
-  {
-    id: 3,
-    content: 'ct3'
-  },
-  {
-    id: 4,
-    content: 'ct4'
-  },
-  {
-    id: 5,
-    content: 'ct5'
-  }
-]);
-const meta = ref<Meta>({
-  totalCount: 1200
+axios.get('http://localhost/sanctum/csrf-cookie').then((response) => {
+    console.log(response);
 });
+
+type User = {
+    name: string;
+    email: string;
+};
+
+const user = ref<null | User>(null);
+
+const getUser = () => {
+    axios
+        .get('http://localhost/api/user')
+        .then((response) => {
+            console.log(response);
+
+            if (response.data) {
+                user.value = response.data as User;
+            }
+        })
+        .catch((error) => {
+            console.log(error);
+            user.value = null;
+        });
+};
+
+getUser();
+
+const pending = ref(false);
+
+const logout = () => {
+    pending.value = true;
+    axios
+        .post('http://localhost/api/logout')
+        .then((res) => {
+            console.log(res);
+            pending.value = false;
+        })
+        .catch((error) => {
+            console.log(error);
+            pending.value = false;
+        });
+
+    getUser();
+};
 </script>
+
+<template>
+    <q-page class="q-gutter-lg" padding>
+        <q-card class="row items-start justify-evenly">
+            <q-card-section v-if="!user">
+                <q-btn label="Login" to="/login"></q-btn>
+            </q-card-section>
+            <q-card-section v-if="!user">
+                <q-btn label="Register" to="/register"></q-btn>
+            </q-card-section>
+            <q-card-section v-if="user">
+                <q-btn
+                    :loading="pending"
+                    label="Logout"
+                    @click="logout"
+                ></q-btn>
+            </q-card-section>
+        </q-card>
+        <q-card class="q-pa-sm row justify-center">
+            <div v-if="!user" class="text-negative">you are not logged in</div>
+            <div v-else class="text-positive">you are logged in</div>
+        </q-card>
+    </q-page>
+</template>
